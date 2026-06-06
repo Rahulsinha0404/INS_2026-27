@@ -1,0 +1,162 @@
+# Caesar Cipher Encryption-Decryption Program
+# ------------------------------------------
+
+# Function to encrypt the plaintext
+def encrypt(text, shift):
+
+    # Create an empty string to store encrypted text
+    result = ""
+
+    # Loop through each character in the input text
+    for ch in text:
+
+        # Check whether the character is an alphabet
+        if ch.isalpha():
+
+            # Check if the character is uppercase
+            if ch.isupper():
+
+                # Encryption Formula for Uppercase Letters
+                #
+                # ord(ch)         -> Convert character to ASCII value
+                # ord('A')        -> ASCII value of A (65)
+                # ord(ch)-ord('A')-> Convert A-Z into positions 0-25
+                # + shift         -> Move character forward
+                # % 26            -> Wrap around alphabet if needed
+                # + ord('A')      -> Convert back to ASCII value
+                # chr()           -> Convert ASCII value to character
+
+                result += chr(
+                    (ord(ch) - ord('A') + shift) % 26 + ord('A')
+                )
+
+            # If character is lowercase
+            else:
+
+                # Same logic as uppercase but using 'a'
+                result += chr(
+                    (ord(ch) - ord('a') + shift) % 26 + ord('a')
+                )
+
+        # If character is not alphabet
+        else:
+
+            # Keep spaces, digits, and special symbols unchanged
+            result += ch
+
+    # Return encrypted message
+    return result
+
+
+# Function to decrypt the ciphertext
+def decrypt(text, shift):
+
+    # Create an empty string to store decrypted text
+    result = ""
+
+    # Traverse each character
+    for ch in text:
+
+        # Check if character is alphabet
+        if ch.isalpha():
+
+            # Check if uppercase letter
+            if ch.isupper():
+
+                # Decryption Formula
+                #
+                # ord(ch) - ord('A') -> Position of encrypted letter
+                # - shift            -> Move backward
+                # % 26               -> Wrap around alphabet
+                # + ord('A')         -> Convert back to ASCII
+                # chr()              -> Convert ASCII to character
+
+                result += chr(
+                    (ord(ch) - ord('A') - shift) % 26 + ord('A')
+                )
+
+            # If lowercase letter
+            else:
+
+                # Same logic for lowercase letters
+                result += chr(
+                    (ord(ch) - ord('a') - shift) % 26 + ord('a')
+                )
+
+        # Non-alphabetic characters remain unchanged
+        else:
+            result += ch
+
+    # Return original message
+    return result
+
+
+# ---------------- MAIN PROGRAM ----------------
+
+# Take message input from user
+message = input("Enter Message: ")
+
+# Take shift value from user
+shift = int(input("Enter Shift Value: "))
+
+# Call encryption function
+encrypted = encrypt(message, shift)
+
+# Display encrypted text
+print("Encrypted Text:", encrypted)
+
+# Call decryption function
+decrypted = decrypt(encrypted, shift)
+
+# Display decrypted text
+print("Decrypted Text:", decrypted)
+
+
+# ---------------- DRY RUN ----------------
+#
+# Input:
+# Message = HELLO
+# Shift = 3
+#
+# Encryption:
+# H -> K
+# E -> H
+# L -> O
+# L -> O
+# O -> R
+#
+# Cipher Text = KHOOR
+#
+# Decryption:
+# K -> H
+# H -> E
+# O -> L
+# O -> L
+# R -> O
+#
+# Original Text = HELLO
+#
+# Formula Used:
+#
+# Encryption:
+# C = (P + K) mod 26
+#
+# Decryption:
+# P = (C - K) mod 26
+#
+# Where:
+# P = Plaintext Position
+# C = Ciphertext Position
+# K = Shift Key
+#
+# Example:
+# H = 7
+# Shift = 3
+#
+# (7 + 3) % 26 = 10
+#
+# Position 10 = K
+#
+# Therefore:
+# H -> K
+#
