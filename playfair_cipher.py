@@ -1,0 +1,159 @@
+"""
+Playfair Cipher Encryption and Decryption
+=========================================
+
+The classical Playfair cipher uses a 5 x 5 key square. Since the English
+alphabet has 26 letters, I and J occupy the same position; this program maps
+every J to I.
+
+Rules applied to each two-letter block (digraph):
+1. Same row: move each letter one place right for encryption, or left for
+   decryption (wrapping around the row).
+2. Same column: move each letter one place down for encryption, or up for
+   decryption (wrapping around the column).
+3. Rectangle: replace each letter with the one in its row and the other
+   letter's column.
+
+Plaintext is normalized to uppercase letters. When a pair would contain the
+same letter twice, X is inserted between them (Q is used after X). A final
+filler is also added when the message has an odd number of letters.
+"""
+
+import string
+
+
+# The 25 symbols of the classical Playfair square. J is intentionally omitted.
+ALPHABET = string.ascii_uppercase.replace("J", "")
+
+
+def normalize(text: str) -> str:
+    """Convert text to uppercase letters only and replace J with I."""
+    return "".join(
+        character
+        for character in text.upper().replace("J", "I")
+        if character in ALPHABET
+    )
+
+
+def build_key_square(key: str):
+    """Build and return the 5 x 5 square plus a fast letter-position lookup.
+
+    First, unique letters from the key are placed in the square. The remaining
+    letters of the alphabet are then appended in alphabetical order.
+    """
+    letters = []
+    for character in normalize(key) + ALPHABET:
+        if character not in letters:
+            letters.append(character)
+
+    square = [letters[index:index + 5] for index in range(0, 25, 5)]
+    positions = {
+        square[row][column]: (row, column)
+        for row in range(5)
+        for column in range(5)
+    }
+    return square, positions
+
+
+def prepare_plaintext(plaintext: str) -> list[str]:
+    """Normalize plaintext and split it into legal Playfair digraphs.
+
+    For example, BALLOON becomes BA LX LO ON because the repeated L needs a
+    filler. This function keeps genuine X characters intact where possible.
+    """
+    text = normalize(plaintext)
+    pairs = []
+    index = 0
+
+    while index < len(text):
+        first = text[index]
+
+        # Use a filler if this is the last character or the next character is
+        # identical. Q avoids constructing the invalid pair XX.
+        if index + 1 == len(text) or text[index + 1] == first:
+            filler = "Q" if first == "X" else "X"
+            pairs.append(first + filler)
+            index += 1
+        else:
+            pairs.append(first + text[index + 1])
+            index += 2
+
+    return pairs
+
+
+def transform_pair(pair: str, square, positions, direction: int) -> str:
+    """Transform one pair: direction=1 encrypts, direction=-1 decrypts."""
+    first, second = pair
+    first_row, first_column = positions[first]
+    second_row, second_column = positions[second]
+
+    if first_row == second_row:  # Same row
+        return (
+            square[first_row][(first_column + direction) % 5]
+            + square[second_row][(second_column + direction) % 5]
+        )
+
+    if first_column == second_column:  # Same column
+        return (
+            square[(first_row + direction) % 5][first_column]
+            + square[(second_row + direction) % 5][second_column]
+        )
+
+    # Rectangle: swap only the columns.
+    return square[first_row][second_column] + square[second_row][first_column]
+
+
+def encrypt(plaintext: str, key: str) -> str:
+    """Encrypt plaintext with a Playfair key and return uppercase ciphertext."""
+    square, positions = build_key_square(key)
+    return "".join(
+        transform_pair(pair, square, positions, direction=1)
+        for pair in prepare_plaintext(plaintext)
+    )
+
+
+def decrypt(ciphertext: str, key: str) -> str:
+    """Decrypt an even-length Playfair ciphertext.
+
+    The result retains filler X/Q letters because removing them automatically
+    is ambiguous: an X or Q may be part of the original message.
+    """
+    text = normalize(ciphertext)
+    if len(text) % 2 != 0:
+        raise ValueError("Ciphertext must contain an even number of letters.")
+
+    square, positions = build_key_square(key)
+    return "".join(
+        transform_pair(text[index:index + 2], square, positions, direction=-1)
+        for index in range(0, len(text), 2)
+    )
+
+
+def display_square(square) -> None:
+    """Print the key square neatly."""
+    for row in square:
+        print(" ".join(row))
+
+
+if __name__ == "__main__":
+    # A standard known-answer test.
+    example_key = "PLAYFAIR EXAMPLE"
+    example_plaintext = "Hide the gold in the tree stump"
+    example_ciphertext = encrypt(example_plaintext, example_key)
+
+    print("--- Standard example ---")
+    print("Key:", example_key)
+    print("Key square:")
+    display_square(build_key_square(example_key)[0])
+    print("Plaintext:", example_plaintext)
+    print("Prepared pairs:", " ".join(prepare_plaintext(example_plaintext)))
+    print("Ciphertext:", example_ciphertext)
+    print("Decrypted:", decrypt(example_ciphertext, example_key))
+    print("Expected ciphertext: BMODZBXDNABEKUDMUIXMMOUVIF")
+
+    # Uncomment these lines in Google Colab to encrypt your own message.
+    # key = input("Enter key: ")
+    # plaintext = input("Enter plaintext: ")
+    # ciphertext = encrypt(plaintext, key)
+    # print("Ciphertext:", ciphertext)
+    # print("Decrypted:", decrypt(ciphertext, key))
